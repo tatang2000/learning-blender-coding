@@ -112,3 +112,4 @@ while True:
     response = npc_response(intent, emotion)
 
     print(response)
+
