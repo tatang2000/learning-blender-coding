@@ -1,131 +1,215 @@
 using System;
+
 class Player{
     public string nama;
-    public int damage;
     public int health;
+    public int damage;
     public int speed;
+    public int critchance = 100;
+    public int critmultiplier = 2;
+    public bool blind = false;
     
-    public void Aksiplayer(Enemy target){
-                while(true){
-                Console.WriteLine("turn player!");
-                Console.WriteLine("1. Serang");
-                Console.WriteLine("2. Heal");
-                Console.WriteLine("3. Cek status");
-                
-                Console.Write("Pilih aksi: (1-3): ");
-                int pilihan = int.Parse(Console.ReadLine());
-                if(pilihan == 1){
-                    Serang(target);
-                    break;
-                } else if(pilihan == 2){
-                    Heal(20);
-                    break;
-                } else if(pilihan == 3){
-                    Cekstatus();
-                } else{
-                    Console.WriteLine("pilih yang bener!");
-                }
-                }
+    Random rand = new Random();
+    
+    public void AksiPlayer(Enemy target){
+        while(true){
+            Console.WriteLine("\nTurn player!");
+            Console.WriteLine("1. Serang!");
+            Console.WriteLine("2. Heal!");
+            Console.WriteLine("3. Cek Status!");
+            
+            Console.Write("pilih aksi! (1-3): ");
+            int pilihan = int.Parse(Console.ReadLine());
+            
+            if(pilihan == 1){
+                Serang(target);
+                break;
+            } else if(pilihan == 2){
+                Heal(20);
+                break;
+            } else if(pilihan == 3){
+                CekStatus();
+            } else{
+                Console.WriteLine("pilihan hanya 1-3");
+            }
+        }
     }
-    
     public void KenaDamage(int damage){
-        health -= damage;
         if(health <= 0){
-            health = 0;
-            Console.WriteLine(nama+" kena damage "+ damage);
-            Console.WriteLine("sisa health: "+health);
-            Console.WriteLine(nama+" Dead");
-            Console.WriteLine("GAME OVER");
             return;
         }
-        Console.WriteLine(nama+" kena damage "+ damage);
-        Console.WriteLine("sisa health: "+health+"\n");
+        
+        health -= damage;
+        
+        if(health <= 0){
+            health = 0;
+            Console.WriteLine(nama+" kena damage "+damage);
+            Console.WriteLine(nama+" sisa health: "+health);
+            Console.WriteLine(nama+" DEAD! ");
+            Console.WriteLine("GAME OVER!...");
+            return;
+        }
+        Console.WriteLine(nama+" kena damage "+damage);
+        Console.WriteLine(nama+" sisa health: "+health);
     }
-    
     public void Heal(int jumlah){
         health += jumlah;
         Console.WriteLine(nama+" heal "+jumlah);
-        Console.WriteLine("health sekarang: "+health+"\n");
     }
-    
-    public void Cekstatus(){
-        Console.WriteLine("===STATUS===\n");
+    public void CekStatus(){
+        Console.WriteLine("===STATUS "+nama+"===");
         Console.WriteLine("nama: "+nama);
         Console.WriteLine("health: "+health);
         Console.WriteLine("damage: "+damage);
         Console.WriteLine("speed: "+speed);
+        Console.WriteLine("critchance: "+critchance+"%");
     }
-    
     public bool isAlive(){
         return health > 0;
     }
-    
     public void Serang(Enemy target){
-        Console.WriteLine("\n"+nama+" menyerang "+target.nama+"!");
-        target.KenaDamage(damage);
+        Random rand = new Random();
+        int hitchance = 70 - (speed - target.speed);
+        
+        if(hitchance  > 95) hitchance = 95;
+        if(hitchance < 30) hitchance = 30;
+        
+        if(blind){
+            hitchance -=40;
+            Console.WriteLine(nama+" dalam kondisi blind, akurasi akan menurun");
+        }
+        
+        if(hitchance < 10) hitchance = 10;
+        
+        int roll = rand.Next(1,101);
+        
+        Console.WriteLine("\n"+nama+" menyarang "+target.nama+"!\n");
+        
+        if(roll>hitchance){
+            Console.WriteLine("serangan meleset!");
+            return;
+        }
+        
+        int finaldamage = damage;
+        
+        int qualityroll = rand.Next(1,101);
+        
+        if(qualityroll<=60){
+            Console.WriteLine("petfect hit!");
+        } else{
+            Console.WriteLine("graze hit!");
+            finaldamage = (int)(damage*0.6);
+        }
+        
+        int critroll = rand.Next(1,101);
+        if(critroll <= critchance){
+            Console.WriteLine("CRITICAL HIT!\n");
+            finaldamage *= critmultiplier;
+        }
+        target.KenaDamage(finaldamage);
     }
 }
 
 class Enemy{
     public string nama;
-    public int damage;
     public int health;
+    public int damage;
     public int speed;
+    public bool blind = false;
     
     public void KenaDamage(int damage){
-    health -= damage;
-    if(health <= 0){
-        health = 0;
-        Console.WriteLine(nama+" kena damage "+ damage);
-        Console.WriteLine("sisa health: "+health);
-        Console.WriteLine(nama+" Dead");
-        return;
+        if(health <= 0){
+            return;
+        }
+        
+        health -= damage;
+        
+        if(health <= 0){
+            health = 0;
+            Console.WriteLine(nama+" kena damage "+damage);
+            Console.WriteLine(nama+" sisa health: "+health);
+            Console.WriteLine(nama+" DEAD! ");
+            return;
+        }
+        Console.WriteLine(nama+" kena damage "+damage);
+        Console.WriteLine(nama+" sisa health: "+health);
     }
-    Console.WriteLine(nama+" kena damage "+ damage);
-    Console.WriteLine("sisa health: "+health+"\n");
-    }
-    
-    public void Serang(Player target){
-        Console.WriteLine(nama+" menyerang "+target.nama+"!\n");
-        target.KenaDamage(damage);
-    }
-    
     public bool isAlive(){
         return health > 0;
+    }
+    public void Serang(Player target){
+        Random rand = new Random();
+        
+        int hitchance = 70 + (speed-target.speed);
+        
+        if(hitchance > 95) hitchance = 95;
+        if(hitchance < 30) hitchance = 30;
+        
+        if(blind){
+            hitchance -= 40;
+            Console.WriteLine(nama+" dalam kondisi blind!");
+        }
+        
+        if(hitchance < 10) hitchance = 10;
+        
+        int roll = rand.Next(1,101);
+        
+        Console.WriteLine("\n"+nama+" menyerang "+target.nama+"!");
+        
+        if(roll>hitchance){
+            Console.WriteLine("serangan meleset");
+            return;
+        }
+        
+        int finaldamage = damage;
+        
+        int qualityroll = rand.Next(1,101);
+        
+        if(qualityroll <= 60){
+            Console.WriteLine("serangan musuh perfect hit!");
+        } else{
+            Console.WriteLine("serangan musuh graze hit!");
+            finaldamage = (int)(damage*0.6);
+        }
+        target.KenaDamage(finaldamage);
     }
 }
 
 class Program{
     static void Main(){
         Player p1 = new Player();
+        Enemy e1 = new Enemy();
         
-        Console.Write("masukkan nama player: ");
+        Console.Write("masukkan nama: ");
         p1.nama = Console.ReadLine();
-        p1.damage = 10;
+        p1.damage = 20;
         p1.health = 100;
         p1.speed = 10;
         
-        Enemy e1 = new Enemy();
-        e1.nama = "GOBLIN";
+        e1.nama = "Goblin";
         e1.damage = 20;
-        e1.health = 30;
-        e1.speed = 15;
+        e1.health = 40;
+        e1.speed = 20;
         
-        Console.WriteLine("player sudah dibuat!\n");
-        Console.WriteLine("muncul musuh: "+e1.nama);
+        Console.WriteLine("Player sudah dibuat!\n");
+        Console.WriteLine(e1.nama+" muncul!");
         
         int ronde = 1;
         while(p1.isAlive()&&e1.isAlive()){
-            Console.WriteLine("Turn ke-"+ronde+"\n");
+            Console.WriteLine("\nTurn ke-"+ronde+"\n");
+            
             if(p1.speed > e1.speed){
-                p1.Aksiplayer(e1);
-            } else{
+                p1.AksiPlayer(e1);
+                if(e1.isAlive()){
+                    e1.Serang(p1);
+                }
+            }else{
             Console.WriteLine("Turn musuh!");
             e1.Serang(p1);
-            if(p1.health > 0){
-                p1.Aksiplayer(e1);
+            if(p1.isAlive()){
+                p1.AksiPlayer(e1);
             }
-            } ronde++;
-        } 
+        } ronde++;
+        }
     }
 }
