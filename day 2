@@ -1,0 +1,34 @@
+using System;
+
+class Program {
+    static void Main(){
+        string ulang = "y";
+        while(ulang=="y"){
+            int nilai;
+            string inputnilai;
+            
+            Console.Write("masukkan nama: ");
+            string nama = Console.ReadLine();
+            
+            do{
+                Console.Write("masukkan nilai: ");
+                inputnilai = Console.ReadLine();
+            } while(!int.TryParse(inputnilai, out nilai));
+            
+            Console.WriteLine("nama: "+nama);
+            
+            if(nilai<60){
+                Console.WriteLine("anda tidak lulus");
+            } else if(nilai<70){
+                Console.WriteLine("Grade C");
+            } else if(nilai<80){
+                Console.WriteLine("Grade B");
+            } else{
+                Console.WriteLine("Grade A");
+            }
+            Console.Write("mau lanjut? (y/n)");
+            ulang = Console.ReadLine();
+        } 
+        Console.WriteLine("Program sudah selesai");
+    }
+}
