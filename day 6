@@ -1,0 +1,119 @@
+using System;
+
+class Character{
+    public string nama;
+    public int health;
+    public int damage;
+    public int speed;
+    
+    public bool isAlive(){
+        return health > 0;
+    }
+    
+    public void KenaDamage(int damage){
+        if(health <= 0){
+            return;
+        }
+        
+        health -= damage;
+        
+        if(health <= 0){
+            health = 0
+            Console.WriteLine(nama+" terkena "+damage+" damage");
+            Console.WriteLine(nama+" sisa "+health+" health");
+            Console.WriteLine(nama+" DEAD ");
+            Console.WriteLine("GAME OVER..");
+        }
+        Console.WriteLine(nama+" terkena "+damage+" damage");
+        Console.WriteLine(nama+" sisa "+health+" health")
+    }
+    
+}
+
+class Enemy : Character{
+    Random rand = new Random();
+    
+    public void Serang(Player target){
+        int hitchance = 70 - (speed - target.speed);
+        
+        
+        if(hitchance >= 95) hitchance = 95;
+        if(hitchance <= 30) hitchance = 30;
+        if(hitchance < 10) hitchance = 10;
+        
+        int roll = rand.Next(1,101);
+        Console.WriteLine(nama+" menyerang "+target.nama);
+        if(roll>hitchance){
+            Console.WriteLine("serangan meleset");
+            return;
+        }
+        
+        int finaldamage = damage;
+        int qualityroll = rand.Next(1,101);
+        if(qualityroll<=60){
+            Console.WriteLine("serangan musuh perfect hit");
+        } else{
+            Console.WriteLine("serangan musuh graze hit");
+            finaldamage = (int)(damage*0.6);
+        }
+        target.KenaDamage(finaldamage);
+    }
+};
+
+class Player : Character{
+    public int critchance = 30;
+    public int critmultiplier = 2;
+    
+    public void AksiPlayer(Enemy target){
+        while(true){
+            Console.WriteLine("\n Turn Player");
+            Console.WriteLine("1. Basic Attack");
+            Console.WriteLine("2. Skill");
+            Console.WriteLin("3. Heal");
+            Console.WriteLine("4. Cek Status");
+            
+            Console.Write("Pilih Aksi (1-4): ");
+            int pilihan = int.Parse(Console.ReadLine());
+            
+            if(pilihan == 1){
+                Serang(target);
+                return;
+            } else if(pilihan == 2){
+                Skill();
+                return;
+            } else if(pilihan == 3){
+                Heal(20);
+                return;
+            } else if(pilihan == 4){
+                CekStatus();
+            } else{
+                Console.WriteLine("pilihan hanya 1-4");
+            }
+        }
+    }
+};
+
+class Mage : Player{
+    
+};
+
+class Knight : Player{
+    
+};
+
+class Paladin : Player{
+    
+};
+
+class Priest : Player{
+    
+};
+
+class Skill{
+    
+};
+
+class StatusEffect{
+    
+};
+
