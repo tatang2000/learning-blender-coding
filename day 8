@@ -139,6 +139,8 @@ class Player : Character{
     public int CritDamage = 200/100;
     
     public List<Skill> SkillList = new List<Skill>();
+    
+    public bool  AksiBatal = false;
     /// nambahin fitur random
     Random rand = new Random();
     
@@ -151,6 +153,7 @@ class Player : Character{
         }
         /// looping supaya kalau ada yang pilih diluar itu akan dari trun player lagi
         while(true){
+            AksiBatal = false;
             Console.WriteLine("===Turn Player===");
             Console.WriteLine("1. Basic Attack");
             Console.WriteLine("2. Skill");
@@ -165,7 +168,12 @@ class Player : Character{
                 break;
             } else if(pilihan == 2){
                 GunakanSkill(target);
-                break;
+                if(AksiBatal == true){
+                    Console.WriteLine("silahkan ambil aksi lain");
+                    continue;
+                } else{
+                    break;
+                }
             } else if(pilihan == 3){
                 Heal(20);
                 break;
@@ -227,9 +235,19 @@ class Player : Character{
                 Console.WriteLine((i+1)+". "+s.nama+" (cooldown : "+s.CooldownNow+" turn)");
             }
         }
-        
-        Console.Write("Pilih Skill (angka): ");
+        Console.Write("pilih skill (angka, ketik 0 untuk batal): ");
         int pilihan = int.Parse(Console.ReadLine())-1;
+        
+        if(pilihan == -1){
+            AksiBatal = true;
+            return;
+        }
+        
+        if(pilihan < 0 || pilihan >= SkillList.Count){
+            Console.WriteLine("skill tidak ada");
+            AksiBatal = true;
+            return;
+        }
         
         if(pilihan < 0 || pilihan >= SkillList.Count){
             Console.WriteLine("Skill tidak ada");
@@ -240,6 +258,7 @@ class Player : Character{
         
         if(Skill.CooldownNow > 0){
             Console.WriteLine(Skill.nama+" masih cooldown "+Skill.CooldownNow+" turn lagi!");
+            AksiBatal = true;
             return;
         }
         /// roll dadu buat hitchance skill
@@ -249,6 +268,7 @@ class Player : Character{
         ///skill yang meleset
         if(roll>Skill.Accuracy){
             Console.WriteLine("skill meleset");
+            Skill.CooldownNow = Skill.CooldownMax;
             return;
         }
         
@@ -440,7 +460,6 @@ class Program{
                 if(p1.isAlive()){
                     p1.AksiPlayer(e1);
                 }
-                p1.KurangCooldown();
             } 
             p1.KurangCooldown();
             Ronde++;
