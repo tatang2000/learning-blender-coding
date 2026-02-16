@@ -1,0 +1,595 @@
+using System;
+using System.Collections.Generic;
+
+class Character{
+    public string nama;
+    public int Health;
+    public int Damage;
+    public int Speed;
+    
+    public bool Blind = false;
+    public bool Stun = false;
+    
+    public List<StatusEffect> StatusList = new List<StatusEffect>();
+    
+    ///cek apakah character nya hidup atau engga
+    public bool isAlive(){
+        return Health>0;
+    }
+    
+    public void KenaDamage(int Damage){
+        /// sebelum diserang harus cek dulu apakah mati atau belum menggunakan public bool isAlive yang sudah dibikin
+        if(!isAlive()){
+            return;
+        }
+        
+        Health -= Damage;///baru kita kasih damage
+        
+        if(!isAlive()){
+            Health = 0;/// jika mati maka tampilkan yang dibawah ini
+            
+            Console.WriteLine(nama+" kena damage "+Damage);
+            Console.WriteLine(nama+" sisa health "+Health);
+            Console.WriteLine(nama+" DEAD");
+            Console.WriteLine("GAME OVER..");
+            return;
+        }
+        ///jika tidak mati maka tampilkan kena damage dan sisa health saja
+        Console.WriteLine(nama+" kena damage "+Damage);
+        Console.WriteLine(nama+" sisa health "+Health+"\n");
+    }
+    
+    public void JalankanStatus(){
+        foreach(StatusEffect s in StatusList){
+            s.Effect(this);
+        }
+        StatusList.RemoveAll(s=>s.Durasi<=0);
+    }
+}
+
+class StatusEffect{
+    public string nama;
+    public int Durasi;
+    bool Applied = false;
+    
+    public StatusEffect(string nama, int Durasi){
+        this.nama = nama;
+        this.Durasi = Durasi;
+    }
+    
+    public void Effect(Character target){
+        if(!Applied){
+            ApplyEffect(target);
+            Applied = true;
+        }
+        
+        Tick(target);
+        
+        Durasi--;
+        
+        if(Durasi <= 0){
+            RemoveEffect(target);
+        }
+    }
+    
+    void ApplyEffect(Character target){
+        if(nama == "BuffAtk"){
+            target.Damage += 5;
+            Console.WriteLine(target.nama+" atk meningkat!");
+        }
+        if(nama == "DebuffAtk"){
+            target.Damage -= 5;
+            Console.WriteLine(target.nama+" atk menurun!");
+        }
+    }
+    
+    void Tick(Character target){
+        
+        if(nama == "Burn"){
+            int BurnDamage = 5;
+            Console.WriteLine(target.nama+" terkena burn damage "+BurnDamage);
+            target.KenaDamage(BurnDamage);
+        }
+        
+        if(nama == "Stun"){
+            Console.WriteLine(target.nama+" terkena stun");
+            target.Stun = true;
+        }
+    }
+    
+    void RemoveEffect(Character target){
+        if(nama == "BuffAtk"){
+            target.Damage -= 5;
+            Console.WriteLine(target.nama+" buff atk selesai!");
+        }
+        if(nama == "DebuffAtk"){
+            target.Damage += 5;
+            Console.WriteLine(target.nama+" debuff atk selesai!");
+        }
+    }
+    
+    
+}
+
+class Skill{
+    public string nama;
+    public int Damage;
+    public int Accuracy;
+    public string Status;
+    public int StatusChance;
+    public int Durasi;
+    public int CooldownNow;
+    public int CooldownMax;
+    
+    public Skill(string nama, int Damage, int Accuracy, string Status = "", int StatusChance = 0, int Durasi = 0, int cd = 0){
+        this.nama = nama;
+        this.Damage = Damage;
+        this.Accuracy = Accuracy;
+        this.Status = Status;
+        this.StatusChance = StatusChance;
+        this.Durasi = Durasi;
+        
+        CooldownMax = cd;
+        CooldownNow = 0; 
+    }
+}
+
+class Item{
+    public string nama;
+    public string Deskripsi;
+    
+    public Item(string nama, string Deskripsi){
+        this.nama = nama;
+        this.Deskripsi = Deskripsi;
+    }
+    
+    public virtual bool Gunakan(Player p){
+        Console.WriteLine("item tidak bisa digunakan langsung");
+        return false;
+    }
+    }
+
+class Potion : Item{
+    public int Jumlah;
+    public int HealAmount;
+    
+    public Potion(string nama, string Deskripsi, int HealAmount, int Jumlah) : base(nama, Deskripsi){
+        this.HealAmount = HealAmount;
+        this.Jumlah = Jumlah;
+    }
+    
+    public override bool Gunakan(Player p){
+        if(Jumlah > 0){
+            p.Heal(HealAmount);
+            Jumlah--;
+            Console.WriteLine("sisa "+nama+" di inventory "+Jumlah+"\n");
+            return true;
+        } else{
+            Console.WriteLine(nama+" kamu sudah habis di inventory");
+            return false;
+        }
+    }
+}
+
+class Senjata : Item{
+    public int BonusDamage;
+    public bool isEquipped;
+    
+    public Senjata(string nama, string Deskripsi, int BonusDamage) : base(nama, Deskripsi){
+        this.BonusDamage = BonusDamage;
+        this.isEquipped = false;
+    }
+    
+    public override bool Gunakan(Player p){
+        if(!isEquipped){
+            p.Damage += BonusDamage;
+            isEquipped = true;
+            Console.WriteLine(p.nama+" memakai senjata "+nama+"!");
+            return true;
+        } else{
+            Console.WriteLine(nama+" sudah di pakai");
+            return false;
+        }
+    }
+}
+
+class Player : Character{
+    public int CritRate = 80;
+    public int CritDamage = 200/100;
+    
+    public List<Skill> SkillList = new List<Skill>();
+    public List<Item> Inventory= new List<Item>();
+    
+    public bool  AksiBatal = false;
+    /// nambahin fitur random
+    Random rand = new Random();
+    
+    public void AksiPlayer(Enemy target){
+        
+        if(Stun){
+            Console.WriteLine(nama+" anda tidak bisa ber aksi!");
+            Stun = false;
+            return;
+        }
+        /// looping supaya kalau ada yang pilih diluar itu akan dari trun player lagi
+        while(true){
+            AksiBatal = false;
+            Console.WriteLine("===Turn Player===");
+            Console.WriteLine("1. Basic Attack");
+            Console.WriteLine("2. Skill");
+            Console.WriteLine("3. Inventory");
+            Console.WriteLine("4. Status");
+            /// input user
+            Console.Write("pilih aksi (angka): ");
+            int pilihan = int.Parse(Console.ReadLine());
+            /// jalur aksi yang di mau user
+            if(pilihan == 1){
+                Serang(target);
+                break;
+            } else if(pilihan == 2){
+                GunakanSkill(target);
+                if(AksiBatal == true){
+                    Console.WriteLine("silahkan ambil aksi lain");
+                    continue;
+                } else{
+                    break;
+                }
+            } else if(pilihan == 3){
+                CekInventory();
+                
+                if(AksiBatal == true){
+                    Console.WriteLine("silahkan pilih aksi yang lain");
+                    continue;
+                } else{
+                    break;
+                }
+            } else if(pilihan == 4){
+                CekStatus();
+            } else{
+                Console.WriteLine("pilih yang bener");
+            }
+        }
+    }
+    
+    public void Serang(Enemy target){
+        ///speed mempengaruhi hitchace dari speed player maupun musuh
+        int HitChance = 70 + (Speed - target.Speed);
+        ///penyesuaian agar tidak OP
+        if(HitChance > 95) HitChance = 95;
+        if(HitChance < 30) HitChance = 30;
+        /// roll dadu buat apakah meleset atau engga
+        int Roll = rand.Next(1,101);
+        
+        Console.WriteLine(nama+" menyerang "+target.nama+"!");
+        /// buat serangan yang meleset
+        if(Roll>HitChance){
+            Console.WriteLine("serangan meleset");
+            return;
+        }
+        
+        int FinalDamage = Damage;
+        ///roll dadu buat apakah perfect hit atau graze hit
+        int QualityRoll = rand.Next(1,101);
+        /// 60% untuk perfect hit
+        if(QualityRoll <= 60){
+            Console.WriteLine("PERFECT HIT!");
+        } else{
+            /// 40% untuk graze hit
+            Console.WriteLine("GRAZE HIT!");
+            /// pengurangan 40% damage karena agak meleset
+            FinalDamage = (int)(Damage*0.6);
+        }
+        /// roll dadu buat critrate
+        int CritRoll = rand.Next(1,101);
+        if(CritRoll<=CritRate){
+            /// jika nge crit
+            Console.WriteLine("CRITICAL HIT!");
+            FinalDamage *= CritDamage;
+        }
+        target.KenaDamage(FinalDamage);
+    }
+    
+    public void GunakanSkill(Enemy target){
+        Console.WriteLine("===Daftar Skill===");
+        /// manampilkan semua skill dipunya
+        for(int i = 0; i < SkillList.Count; i++){
+            Skill s = SkillList[i];
+            
+            if(s.CooldownNow == 0){
+                Console.WriteLine((i+1)+". "+s.nama+" damage: "+s.Damage+" (READY) ");
+            } else{
+                Console.WriteLine((i+1)+". "+s.nama+" (cooldown : "+s.CooldownNow+" turn)");
+            }
+        }
+        Console.Write("pilih skill (angka, ketik 0 untuk batal): ");
+        int pilihan = int.Parse(Console.ReadLine())-1;
+        
+        if(pilihan == -1){
+            AksiBatal = true;
+            return;
+        }
+        
+        if(pilihan < 0 || pilihan >= SkillList.Count){
+            Console.WriteLine("skill tidak ada");
+            AksiBatal = true;
+            return;
+        }
+        
+        if(pilihan < 0 || pilihan >= SkillList.Count){
+            Console.WriteLine("Skill tidak ada");
+            return;
+        }
+        
+        Skill Skill = SkillList[pilihan];
+        
+        if(Skill.CooldownNow > 0){
+            Console.WriteLine(Skill.nama+" masih cooldown "+Skill.CooldownNow+" turn lagi!");
+            AksiBatal = true;
+            return;
+        }
+        /// roll dadu buat hitchance skill
+        int roll = rand.Next(1,101);
+        
+        Console.WriteLine("\n"+nama+" menggunakan Skill "+Skill.nama+"!");
+        ///skill yang meleset
+        if(roll>Skill.Accuracy){
+            Console.WriteLine("skill meleset");
+            Skill.CooldownNow = Skill.CooldownMax;
+            return;
+        }
+        
+        target.KenaDamage(Skill.Damage);
+        
+        Skill.CooldownNow = Skill.CooldownMax;
+        
+        if(!target.isAlive()) return;
+        
+        if(Skill.Status != ""){
+            
+            int rollStatus = rand.Next(1,101);
+            
+            if(rollStatus <= Skill.StatusChance){
+                target.StatusList.Add(new StatusEffect(Skill.Status, Skill.Durasi));
+                Console.WriteLine(target.nama+" terkena "+Skill.Status+"!\n");
+            }
+        }
+    }
+    
+    public void KurangCooldown(){
+        foreach(Skill s in SkillList){
+            if(s.CooldownNow > 0){
+                s.CooldownNow--;
+            }
+        }
+    }
+    
+    public void CekInventory(){
+        Console.WriteLine("=== INVENTORY ===\n");
+        
+        if(Inventory.Count == 0){
+            Console.WriteLine("Inventory kamu kosong");
+            AksiBatal = true;
+            return;
+        }
+        
+        for(int i = 0; i < Inventory.Count; i++){
+            Item Barang = Inventory[i];
+            
+            if(Barang is Potion){
+                Potion p = (Potion)Barang;
+                Console.WriteLine((i+1)+". "+p.nama+" (sisa: "+p.Jumlah+") -"+p.Deskripsi);
+            } else if(Barang is Senjata){
+                Senjata s = (Senjata)Barang;
+                string StatusEquip = s.isEquipped ? "[DIPAKAI]" : "[DISIMPAN]";
+                Console.WriteLine((i+1)+". "+s.nama+" "+StatusEquip+" -"+s.Deskripsi);
+            } else{
+                Console.WriteLine((i+1)+". "+Barang.nama+" -"+Barang.Deskripsi);
+            }
+        }
+        
+        Console.WriteLine("Pilih Barang(angka, ketik 0 untuk batal): ");
+        int pilihan = int.Parse(Console.ReadLine())-1;
+        
+        if(pilihan == -1){
+            AksiBatal = true;
+            return;
+        }
+        
+        if(pilihan < 0 || pilihan >= Inventory.Count){
+            Console.WriteLine("Barang tidak valid");
+            AksiBatal = true;
+            return;
+        }
+        
+        Item ItemDipilih = Inventory[pilihan];
+        
+        bool SuksesDipakai = ItemDipilih.Gunakan(this);
+        
+        if(SuksesDipakai == false){
+            AksiBatal = true;
+        }
+    }
+    
+    public void Heal(int Jumlah){
+        if(Health > 100){
+            Health = 100;
+            Console.WriteLine("darah sudah penuh");
+            return;
+        } else{
+            Health += Jumlah;
+            Console.WriteLine(nama+" heal "+Jumlah);
+        }
+    }
+    
+    public void CekStatus(){
+        Console.WriteLine("===STATUS===");
+        Console.WriteLine("Nama: "+nama);
+        Console.WriteLine("Health: "+Health);
+        Console.WriteLine("Damage: "+Damage);
+        Console.WriteLine("Crit Rate: "+CritRate+"%");
+        Console.WriteLine("Crit Damage: "+CritDamage*100+"%");
+        Console.WriteLine("Speed: "+Speed);
+    }
+    
+    
+}
+
+class Mage : Player{
+    public Mage(string nama){
+        this.nama = nama;
+        Health = 70;
+        Damage = 40;
+        Speed = 10;
+        
+        SkillList.Add(new Skill("Fireball",  35, 70, "burn", 60, 3, 4));
+        SkillList.Add(new Skill("Lightning Rod",  30, 90, "stun", 30, 1, 3));
+        
+        Inventory.Add(new Senjata("Magical Wand", "Tongkat Sihir(+5)", 5));
+        Inventory.Add(new Potion("Heal Potion", "Menambahkan 40 Health",40,2));
+    }
+}
+
+class Knight : Player{
+    public Knight(string nama){
+        this.nama = nama;
+        Health = 120;
+        Damage = 20;
+        Speed = 13;
+        
+        SkillList.Add(new Skill("Slash", 35, 95, "", 0, 0, 1));
+        SkillList.Add(new Skill("Shield Bash", 25, 100, "Stun", 40, 1, 3));
+        
+        Inventory.Add(new Senjata("Great Sword", "Pedang Gede(+6)", 6));
+        Inventory.Add(new Potion("Heal Potion", "Menambahkan 40 Health",40,1));
+    }
+}
+
+class Priest : Player{
+    public Priest(string nama){
+        this.nama = nama;
+        Health = 80;
+        Damage = 25;
+        Speed = 11;
+        
+        SkillList.Add(new Skill("Heal", 40, 100, "", 0, 0, 1));
+        SkillList.Add(new Skill("Blassing Of Ligth", 30, 100, "Blind", 50, 2, 3));
+        
+        Inventory.Add(new Senjata("Holy Wand", "Tongkat Suci(+4)", 4));
+        Inventory.Add(new Potion("Heal Potion", "Menambahkan 40 Health",40,2));
+    }
+}
+
+class Ranger : Player{
+    public Ranger(string nama){
+        this.nama = nama;
+        Health = 70;
+        Damage = 35;
+        Speed = 15;
+    
+        SkillList.Add(new Skill("Eagle Eye Focus", 50, 100, "", 0, 0, 2));
+        SkillList.Add(new Skill("Death's Whisper", 75, 70, "", 0, 0, 3));
+        
+        Inventory.Add(new Senjata("Whisperwind Bow", "Busur Angin(+7)", 7));
+        Inventory.Add(new Potion("Heal Potion", "Menambahkan 40 Health",40,1));
+    }
+}
+
+class Enemy : Character{
+    Random rand = new Random();
+    
+    public void Serang(Player target){
+        if(Stun){
+            Console.WriteLine(nama+" tidak bisa bergerak terkena stun");
+            Stun = false;
+            return;
+        }
+        
+        int HitChance = 70 + (Speed-target.Speed);
+        
+        if(HitChance > 95) HitChance = 95;
+        if(HitChance < 30) HitChance = 30;
+        
+        if(Blind){
+            HitChance -= 40;
+            Console.WriteLine(nama+" dalam kondisi blind!");
+        }
+        
+        int Roll = rand.Next(1,101);
+        
+        Console.WriteLine(nama+" menyerang "+target.nama+"!");
+        
+        if(Roll>HitChance){
+            Console.WriteLine("serangan meleset");
+            return;
+        }
+        
+        int FinalDamage = Damage;
+        
+        int QualityRoll = rand.Next(1,101);
+        
+        if(QualityRoll <= 60){
+            Console.WriteLine("serangan musuh perfect hit!");
+        } else{
+            Console.WriteLine("serangan musuh graze hit!");
+            FinalDamage = (int)(Damage*0.6);
+        }
+        target.KenaDamage(FinalDamage);
+    }
+}
+
+class Program{
+    static void Main(){
+        Console.Write("masukkan nama: ");
+        string nama = Console.ReadLine();
+        
+        Console.WriteLine("1. Mage");
+        Console.WriteLine("2. Knight");
+        Console.WriteLine("3. Priest");
+        Console.WriteLine("4. Ranger");
+        Console.Write("Pilih Class (angka): ");
+        int pilihan = int.Parse(Console.ReadLine());
+        
+        Player p1;
+        
+        if(pilihan == 1){
+            p1 = new Mage(nama);
+        } else if(pilihan == 2){
+            p1 = new Knight(nama);
+        } else if(pilihan == 3){
+            p1 = new Priest(nama);
+        } else{
+            p1 = new Ranger(nama);
+        }
+        
+        Enemy e1 = new Enemy();
+        e1.nama = "Goblin";
+        e1.Damage = 20;
+        e1.Health = 60;
+        e1.Speed = 20;
+        
+        Console.WriteLine("Player dibuat!");
+        Console.WriteLine(e1.nama+" muncul!");
+        
+        int Ronde = 1;
+        while(p1.isAlive() && e1.isAlive()){
+            Console.WriteLine("Turn ke-"+Ronde+"\n");
+            p1.JalankanStatus();
+            e1.JalankanStatus();
+            
+            if(p1.Speed>e1.Speed){
+                p1.AksiPlayer(e1);
+                if(e1.isAlive()){
+                    e1.Serang(p1);
+                }
+            } else{
+                Console.WriteLine("Turn musuh!");
+                e1.Serang(p1);
+                if(p1.isAlive()){
+                    p1.AksiPlayer(e1);
+                }
+            } 
+            p1.KurangCooldown();
+            Ronde++;
+        }
+    }
+}
